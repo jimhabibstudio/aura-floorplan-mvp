@@ -80,6 +80,6 @@ if st.button("Generate Floor Plan") and prompt:
 
     svg_code = dwg.tostring()
     st.subheader("🧩 Floor Plan Sketch")
-    st.image(svg_code, use_column_width=True, caption="Concept sketch (not to scale)")
+    st.image(svg_code, use_container_width=True, caption="Concept sketch (not to scale)")
 
     st.download_button("⬇️ Download SVG", data=svg_code, file_name="floorplan.svg", mime="image/svg+xml")
