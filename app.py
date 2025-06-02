@@ -1,72 +1,72 @@
-# AURA MVP: COMPONENT 1 - Prompt to Floor Plan Generator (Using GPT-3.5)
-
 import streamlit as st
+import random
 import svgwrite
-from openai import OpenAI
 
-# --- API SETUP ---
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# --- Layout Parameters ---
+room_templates = {
+    "bedroom": {"min_size": (3, 3), "max_size": (4, 5)},
+    "bathroom": {"min_size": (2, 2), "max_size": (2.5, 3)},
+    "kitchen": {"min_size": (3, 3), "max_size": (4, 4)},
+    "living": {"min_size": (4, 4), "max_size": (6, 5)},
+    "dining": {"min_size": (3, 3), "max_size": (4, 4)},
+    "garage": {"min_size": (3, 5), "max_size": (4, 6)},
+}
 
-st.set_page_config(page_title="AURA | Floor Plan AI", layout="centered")
-st.title("🏠 AURA - Instant Floor Plan Generator")
-st.markdown("Type your building requirements below, and get a generated floor plan sketch in seconds.")
+# --- Generate Random Room ---
+def random_room(name, offset_x, offset_y):
+    size_x = round(random.uniform(*room_templates[name]["min_size"]), 1)
+    size_y = round(random.uniform(*room_templates[name]["max_size"]), 1)
+    return {"name": name, "x": offset_x, "y": offset_y, "w": size_x, "h": size_y}
 
-# Debug line to confirm model
-st.code("Using model: gpt-3.5-turbo")
+# --- Layout Logic Engine ---
+def generate_plan(num_bedrooms=3, has_garage=True):
+    plan = []
+    x, y = 0, 0
 
-# --- USER INPUT ---
-prompt = st.text_area(
-    "✏️ Describe your building (e.g. 3-bedroom bungalow in Lagos with open kitchen, 2 baths, modern style):"
-)
+    # Living Room at Entry
+    plan.append(random_room("living", x, y))
+    y += 5
 
-if st.button("Generate Floor Plan") and prompt:
-    with st.spinner("Thinking like an architect..."):
+    # Kitchen and Dining Next
+    plan.append(random_room("kitchen", x, y))
+    x += 4
+    plan.append(random_room("dining", x, y))
+    y += 4
+    x = 0
 
-        # --- SYSTEM INSTRUCTION ---
-        system_msg = """
-        You are an expert architect AI. From the user prompt, extract rooms and their approximate sizes (in meters).
-        Return a clear list of rooms and sizes. Example:
-        Living Room: 6x5
-        Kitchen: 4x3
-        Bedroom 1: 4x4
-        Bedroom 2: 4x3
-        """
+    # Bedrooms
+    for i in range(num_bedrooms):
+        plan.append(random_room("bedroom", x, y))
+        x += 4
+        plan.append(random_room("bathroom", x, y))  # Nearby bath
+        x = 0
+        y += 4
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",  # ✅ Using GPT-3.5 to avoid GPT-4 access errors
-                messages=[
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            room_text = response.choices[0].message.content.strip()
-            room_list = room_text.split("\n")
-        except Exception as e:
-            st.error(f"❌ Failed to parse layout. Error: {str(e)}")
-            st.stop()
+    # Garage if required
+    if has_garage:
+        plan.append(random_room("garage", x, y))
 
-        # --- SVG SKETCH GENERATION ---
-        dwg = svgwrite.Drawing(size=(800, 600))
-        x, y = 10, 10
-        gap = 10
+    return plan
 
-        for room in room_list:
-            try:
-                name, size = room.split(":")
-                width_m, height_m = map(float, size.strip().lower().replace("m", "").split("x"))
-                width_px = width_m * 40
-                height_px = height_m * 40
-                dwg.add(dwg.rect(insert=(x, y), size=(width_px, height_px), fill='lightblue', stroke='black'))
-                dwg.add(dwg.text(name.strip(), insert=(x + 5, y + 20), font_size='14px', fill='black'))
-                y += height_px + gap
-            except Exception as e:
-                st.warning(f"⚠️ Skipped drawing: {room}")
+# --- SVG Drawing Function ---
+def draw_svg(plan):
+    dwg = svgwrite.Drawing(size=("800px", "800px"))
+    scale = 60  # meters to pixels
+    for room in plan:
+        x, y, w, h = room["x"] * scale, room["y"] * scale, room["w"] * scale, room["h"] * scale
+        dwg.add(dwg.rect(insert=(x, y), size=(w, h), stroke='black', fill='lightgray', stroke_width=2))
+        dwg.add(dwg.text(room["name"], insert=(x + 5, y + 15), font_size="14px", fill='black'))
+    return dwg.tostring()
 
-        # --- OUTPUT ---
-        st.subheader("🧩 Generated Floor Plan Sketch")
-        svg_code = dwg.tostring()
-        st.image(svg_code, use_column_width=True, caption="(Conceptual layout only, not to scale)")
+# --- Streamlit UI ---
+st.set_page_config(page_title="AURA - Floor Plan Generator")
+st.title("🏠 AURA - AI Architect: Random Floor Plan Generator")
 
-        # --- DOWNLOAD OPTION ---
-        st.download_button("⬇️ Download SVG", data=svg_code, file_name="floorplan.svg", mime="image/svg+xml")
+st.write("Describe your project:")
+bedrooms = st.slider("Number of Bedrooms", 1, 5, 3)
+garage = st.checkbox("Include Garage", value=True)
+
+if st.button("🧠 Generate Floor Plan"):
+    floor_plan = generate_plan(bedrooms, has_garage=garage)
+    svg_code = draw_svg(floor_plan)
+    st.components.v1.html(svg_code, height=600, scrolling=True)
