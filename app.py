@@ -31,7 +31,7 @@ if st.button("Generate Floor Plan") and prompt:
 
         try:
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",  # Use GPT-3.5 instead of GPT-4
                 messages=[
                     {"role": "system", "content": system_msg},
                     {"role": "user", "content": prompt}
@@ -63,7 +63,7 @@ if st.button("Generate Floor Plan") and prompt:
         # --- STEP 3: DISPLAY SVG ---
         st.subheader("🧩 Generated Floor Plan Sketch")
         svg_code = dwg.tostring()
-        st.image(dwg.tostring(), use_column_width=True, caption="Not to scale - demo layout")
+        st.image(svg_code, use_column_width=True, caption="Not to scale - demo layout")
 
         # --- STEP 4: Download Link ---
         st.download_button("⬇️ Download SVG", data=svg_code, file_name="floorplan.svg", mime="image/svg+xml")
