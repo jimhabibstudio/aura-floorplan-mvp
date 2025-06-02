@@ -1,15 +1,17 @@
 # app.py
-# Main entry point for AURA One MVP - AI Floor Plan Generator
+# AURA One MVP - Entry Point
 
 import streamlit as st
 from frontend.ui import display_app
 
-# Run the main app interface
+# ====== MAIN STREAMLIT ENTRY POINT ======
 def main():
     """
-    Launch AURA One MVP Streamlit UI
+    Entry point that launches the Streamlit interface.
     """
+    st.set_page_config(page_title="AURA One MVP", layout="wide")
     display_app()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
