@@ -1,11 +1,11 @@
 # AURA MVP: COMPONENT 1 - Prompt to Floor Plan Generator (Lightweight Version)
 
 import streamlit as st
-import openai
 import svgwrite
+from openai import OpenAI
 
 # --- SETUP ---
-openai.api_key = st.secrets["OPENAI_API_KEY"]  # Use Streamlit secrets for security
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 st.set_page_config(page_title="AURA | Floor Plan AI", layout="centered")
 st.title("🏠 AURA - Instant Floor Plan Generator")
@@ -29,18 +29,18 @@ if st.button("Generate Floor Plan") and prompt:
         Bedroom 2: 4x3
         """
 
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
         try:
-            room_list = response['choices'][0]['message']['content'].strip().split("\n")
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            room_text = response.choices[0].message.content.strip()
+            room_list = room_text.split("\n")
         except Exception as e:
-            st.error("Failed to parse layout. Try a simpler description.")
+            st.error(f"Failed to parse layout. Try a simpler description. Error: {str(e)}")
             st.stop()
 
         # --- STEP 2: DRAW SVG ---
@@ -57,8 +57,8 @@ if st.button("Generate Floor Plan") and prompt:
                 dwg.add(dwg.rect(insert=(x, y), size=(width_px, height_px), fill='lightblue', stroke='black'))
                 dwg.add(dwg.text(name.strip(), insert=(x + 5, y + 20), font_size='14px', fill='black'))
                 y += height_px + gap
-            except:
-                continue
+            except Exception as e:
+                st.warning(f"Could not draw room: {room}")
 
         # --- STEP 3: DISPLAY SVG ---
         st.subheader("🧩 Generated Floor Plan Sketch")
